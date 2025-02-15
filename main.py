@@ -6,7 +6,7 @@ pygame.init()
 
 WIDTH = 650
 HEIGHT = 650
-ROWS, COLS = 25, 25
+ROWS, COLS = 4, 4
 
 
 CELL_SIZE = WIDTH // COLS
@@ -19,7 +19,6 @@ running = True
 grid = Grid(ROWS, COLS, CELL_SIZE, WIN)
 
 
-
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -29,8 +28,12 @@ while running:
     while grid.current_cell:
         grid.draw()
         grid.maze_gen()
-    
+        pygame.time.delay(0)
+
 
 
     clock.tick(120)
+
+
+print(grid.get_graph())
 pygame.quit()

@@ -3,6 +3,7 @@ from collections import deque
 import pygame
 
 
+
 class Cell:
     def __init__(self, row, col, cell_size):
         self.row = row
@@ -134,3 +135,74 @@ class Grid:
 
         else:
             self.current_cell = None
+
+
+    def is_node(self, row, col):
+        cell = self.grid[row][col]
+        counter = 0
+
+        for direction in cell.walls:
+            if cell.walls[direction]:
+                counter += 1
+
+        if counter != 2:
+            return True
+        else:
+            return False
+        
+    def get_graph(self):
+        graph = {}
+        decision_points = set()
+
+        # Identify all decision points
+        for row in self.grid:
+            for cell in row:
+                if self.is_node(cell.row, cell.col):
+                    decision_points.add((cell.row, cell.col))
+
+        # Include start/end nodes if they are not already included
+        decision_points.add((0,0))
+        decision_points.add((self.rows-1, self.cols-1))
+        
+        print(decision_points)
+        # Build adjacency list with direct connections
+        for node in decision_points:
+            graph[node] = {}
+            queue = deque((0,0), 0) # [((row, col), distance),(...),(...)]
+            visited = set()
+
+            while len(queue) != 0:
+                node, distance  = queue.popleft()
+                visited.add(node)
+                neighbors = self.get_neighbors(node[0], node[1])
+                for direction in neighbors:
+                    match direction:
+                        case {"top": neighbor}:
+                            if not self.grid[node[0]][node[1]].walls["top"]:
+                                neighbor_pos = (neighbor.row, neighbor.col)
+                        case {"right": neighbor}:
+                            if not self.grid[node[0]][node[1]].walls["right"]:
+                                neighbor_pos = (neighbor.row, neighbor.col)
+                        case {"bottom": neighbor}:
+                            if not self.grid[node[0]][node[1]].walls["bottom"]:
+                                neighbor_pos = (neighbor.row, neighbor.col)
+                        case {"left": neighbor}:
+                            if not self.grid[node[0]][node[1]].walls["left"]:
+                                neighbor_pos = (neighbor.row, neighbor.col)
+
+                    if neighbor_pos in decision_points: # Found another important node
+                        graph[node][neighbor_pos] = distance + 1 # Store direct connection
+                    elif neighbor_pos not in visited: # Continue searching
+                        queue.append((neighbor_pos), distance + 1)
+        
+        return graph
+
+                   
+                        
+
+
+    def dijkstra(self):
+        ...
+
+    def a_star(self):
+        ...
