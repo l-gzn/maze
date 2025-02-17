@@ -12,6 +12,7 @@ class Cell:
         self.walls = {"top": True, "right": True, "bottom": True, "left": True}
         self.visited = False
 
+
     def remove_wall(self, other, direction):
         if direction == "top":
             self.walls["top"] = False
@@ -32,7 +33,6 @@ class Cell:
 
         if self.visited:
             pygame.draw.rect(win, "purple", (x, y, self.cell_size, self.cell_size))
-
 
         if self.walls["top"]:
             pygame.draw.line(win, "white", (x, y), (x+self.cell_size, y), 2)
@@ -57,11 +57,13 @@ class Grid:
         self.win = win
         self.grid = [[Cell(row, col, cell_size) for col in range(cols)] for row in range(rows)]
 
+
+        # For maze gen
         self.stack = deque()
         self.current_cell = self.grid[random.randint(0, rows-1)][random.randint(0, cols-1)]
         self.current_cell.visited = True
         self.stack.append(self.current_cell)
-
+    
     def get_cell(self, row, col):
         # pour acceder chaque cell
         if 0 <= row <= self.rows and 0 <= col <= self.cols:
@@ -69,7 +71,7 @@ class Grid:
         else:
             return None
 
-
+    # returns dict of a cell's neighbors
     def get_neighbors(self, row, col):
         neighbors = {}
         if (top:= self.get_cell(row-1, col)):
@@ -85,6 +87,7 @@ class Grid:
 
         return neighbors
     
+    # remove wall of 2 adjacent cells
     def remove_wall_between(self, cell1, cell2):
         if cell1.row == cell2.row:
             if cell1.col < cell2.col:
@@ -97,22 +100,23 @@ class Grid:
             else:
                 cell1.remove_wall(cell2, "top")
 
+
+    # Draws grid and current cell to pygame window
     def draw(self, current_cell=None):
         self.win.fill("black")
-        
 
         for row in self.grid:
             for cell in row:
                 if cell.visited:
                     cell.draw(self.win)
 
-
         if self.current_cell and self.stack:
             self.current_cell.highlight(self.win)
 
-        
         pygame.display.update()
 
+
+    # Algo for maze gen
     def maze_gen(self, loops=False):
         if self.stack:
             self.current_cell = self.stack.pop()
@@ -120,7 +124,7 @@ class Grid:
             neighbors = self.get_neighbors(self.current_cell.row, self.current_cell.col)
             unvisited_cells = [cell for cell in neighbors.values() if not cell.visited]
 
-            # Petite chance d'enlever des murs supplementaires
+            # Small chance to remove additional walls, creating more loops
             if loops and random.random() < 0.25:
                 loops  = [cell for cell in neighbors.values() if cell.visited]
                 if loops:
@@ -136,7 +140,7 @@ class Grid:
         else:
             self.current_cell = None
 
-
+    # Returns True if a cell is either a dead-end or a decision point
     def is_node(self, row, col):
         cell = self.grid[row][col]
         counter = 0
@@ -150,6 +154,8 @@ class Grid:
         else:
             return False
         
+
+    # Doesnt work, need to fix soon
     def get_graph(self):
         graph = {}
         decision_points = set()
@@ -164,7 +170,6 @@ class Grid:
         decision_points.add((0,0))
         decision_points.add((self.rows-1, self.cols-1))
         
-        print(decision_points)
         # Build adjacency list with direct connections
         for node in decision_points:
             graph[node] = {}
