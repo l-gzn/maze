@@ -6,8 +6,7 @@ pygame.init()
 
 WIDTH = 650
 HEIGHT = 650
-ROWS, COLS = 25, 25
-
+ROWS, COLS = 10,10
 
 CELL_SIZE = WIDTH // COLS
 WIN = pygame.display.set_mode((WIDTH + 2, HEIGHT + 2))
@@ -18,7 +17,7 @@ running = True
 
 grid = Grid(ROWS, COLS, CELL_SIZE, WIN)
 
-
+grid_printed = False
 
 while running:
     for event in pygame.event.get():
@@ -33,4 +32,7 @@ while running:
 
 
     clock.tick(120)
+    if not grid_printed:
+        print(grid.grid_with_walls)
+        grid_printed = True
 pygame.quit()
