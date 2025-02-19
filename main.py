@@ -28,6 +28,8 @@ while running:
     while grid.current_cell:
         grid.draw()
         grid.maze_gen()
+        pygame.time.delay(0)
+
     
 
 
@@ -35,4 +37,5 @@ while running:
     if not grid_printed:
         print(grid.grid_with_walls)
         grid_printed = True
+
 pygame.quit()
