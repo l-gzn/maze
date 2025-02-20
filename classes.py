@@ -56,6 +56,11 @@ class Grid:
         self.cell_size = cell_size
         self.win = win
         self.grid = [[Cell(row, col, cell_size) for col in range(cols)] for row in range(rows)]
+        self.grid_with_walls = [[1 for col in range(2*cols-1)] for row in range(2*rows-1)] # 0 == no wall 1 == wall
+        for i in range(2*rows-1):
+            for j in range(2*cols-1):
+                if i%2==0 and j%2==0:
+                    self.grid_with_walls[i][j] = 0 
 
 
         # For maze gen
@@ -92,13 +97,17 @@ class Grid:
         if cell1.row == cell2.row:
             if cell1.col < cell2.col:
                 cell1.remove_wall(cell2, "right")
+                self.grid_with_walls[2*cell1.row][2*(cell1.col+1)-1] = 0 # 0 == no wall 1 == wall
             else:
                 cell1.remove_wall(cell2, "left")
+                self.grid_with_walls[2*cell2.row][2*(cell2.col+1)-1] = 0
         elif cell1.col == cell2.col:
             if cell1.row < cell2.row:
                 cell1.remove_wall(cell2, "bottom")
+                self.grid_with_walls[2*(cell1.row+1)-1][2*cell1.col] = 0
             else:
                 cell1.remove_wall(cell2, "top")
+                self.grid_with_walls[2*(cell2.row+1)-1][2*cell2.col] = 0
 
 
     # Draws grid and current cell to pygame window
