@@ -2,8 +2,6 @@ import random
 from collections import deque
 import pygame
 
-
-
 class Cell:
     def __init__(self, row, col, cell_size):
         self.row = row
@@ -62,15 +60,15 @@ class Grid:
                 if i%2==0 and j%2==0:
                     self.grid_with_walls[i][j] = 0 
 
-
         # For maze gen
         self.stack = deque()
         self.current_cell = self.grid[random.randint(0, rows-1)][random.randint(0, cols-1)]
         self.current_cell.visited = True
         self.stack.append(self.current_cell)
-    
+
+
     def get_cell(self, row, col):
-        # pour acceder chaque cell
+        # access each cell in the grid
         if 0 <= row <= self.rows and 0 <= col <= self.cols:
             return self.grid[row][col]
         else:
@@ -149,70 +147,46 @@ class Grid:
         else:
             self.current_cell = None
 
-    # Returns True if a cell is either a dead-end or a decision point
-    def is_node(self, row, col):
-        cell = self.grid[row][col]
-        counter = 0
+    def ij_to_num(self, row, col):
+        return row * self.cols + col + 1
+    
+    def num_to_ij(self, num):
+        row = (num-1) // self.cols
+        col = (num-1) % self.cols
+        return row, col
+    
+    def get_accessible_neighbors(self, row, col):
+        free_neighbors = {}
+        neighbors = self.get_neighbors(row, col)
+        cell = self.get_cell(row, col)
 
         for direction in cell.walls:
-            if cell.walls[direction]:
-                counter += 1
+            if not cell.walls[direction]:
+                free_neighbors[direction] = neighbors[direction]
+                
+        return free_neighbors
 
-        if counter != 2:
-            return True
-        else:
-            return False
-        
 
-    # Doesnt work, need to fix soon
-    def get_graph(self):
-        graph = {}
-        decision_points = set()
+    def get_edge_list(self):
+        list = []
 
-        # Identify all decision points
         for row in self.grid:
             for cell in row:
-                if self.is_node(cell.row, cell.col):
-                    decision_points.add((cell.row, cell.col))
+                free_neighbors = self.get_accessible_neighbors(cell.row, cell.col)
+                for neighbor in free_neighbors.values():
+                    c = self.ij_to_num(cell.row, cell.col)
+                    n = self.ij_to_num(neighbor.row, neighbor.col)
+                    if [n, c, 1] not in list:
+                        list.append([c, n, 1])
+                    
+        return list
 
-        # Include start/end nodes if they are not already included
-        decision_points.add((0,0))
-        decision_points.add((self.rows-1, self.cols-1))
-        
-        # Build adjacency list with direct connections
-        for node in decision_points:
-            graph[node] = {}
-            queue = deque((0,0), 0) # [((row, col), distance),(...),(...)]
-            visited = set()
-
-            while len(queue) != 0:
-                node, distance  = queue.popleft()
-                visited.add(node)
-                neighbors = self.get_neighbors(node[0], node[1])
-                for direction in neighbors:
-                    match direction:
-                        case {"top": neighbor}:
-                            if not self.grid[node[0]][node[1]].walls["top"]:
-                                neighbor_pos = (neighbor.row, neighbor.col)
-                        case {"right": neighbor}:
-                            if not self.grid[node[0]][node[1]].walls["right"]:
-                                neighbor_pos = (neighbor.row, neighbor.col)
-                        case {"bottom": neighbor}:
-                            if not self.grid[node[0]][node[1]].walls["bottom"]:
-                                neighbor_pos = (neighbor.row, neighbor.col)
-                        case {"left": neighbor}:
-                            if not self.grid[node[0]][node[1]].walls["left"]:
-                                neighbor_pos = (neighbor.row, neighbor.col)
-
-                    if neighbor_pos in decision_points: # Found another important node
-                        graph[node][neighbor_pos] = distance + 1 # Store direct connection
-                    elif neighbor_pos not in visited: # Continue searching
-                        queue.append((neighbor_pos), distance + 1)
-        
-        return graph
-
-                   
-                        
+    def draw_edges(self):
+        ...
+            
+            
+    def dfs(self):
+        ...
 
 
     def dijkstra(self):
@@ -220,3 +194,4 @@ class Grid:
 
     def a_star(self):
         ...
+
