@@ -26,20 +26,24 @@ class Cell:
             other.walls["right"] = False
 
     def draw(self, win):
+        """
+        dessine les murs du labyrinthes et background
+        """
         x = self.col * self.cell_size
         y = self.row * self.cell_size
-
+        color_of_walls = 'white'
+        color_of_background = 'purple'
         if self.visited:
-            pygame.draw.rect(win, "purple", (x, y, self.cell_size, self.cell_size))
+            pygame.draw.rect(win, color_of_background, (x, y, self.cell_size, self.cell_size))
 
         if self.walls["top"]:
-            pygame.draw.line(win, "white", (x, y), (x+self.cell_size, y), 2)
+            pygame.draw.line(win, color_of_walls, (x, y), (x+self.cell_size, y), 2)
         if self.walls["right"]:
-            pygame.draw.line(win, "white", (x+self.cell_size, y), (x+self.cell_size, y+self.cell_size), 2)
+            pygame.draw.line(win, color_of_walls, (x+self.cell_size, y), (x+self.cell_size, y+self.cell_size), 2)
         if self.walls["bottom"]:
-            pygame.draw.line(win, "white", (x+self.cell_size, y+self.cell_size), (x, y+self.cell_size), 2)
+            pygame.draw.line(win, color_of_walls, (x+self.cell_size, y+self.cell_size), (x, y+self.cell_size), 2)
         if self.walls["left"]:
-            pygame.draw.line(win, "white", (x, y+self.cell_size), (x, y), 2)
+            pygame.draw.line(win, color_of_walls, (x, y+self.cell_size), (x, y), 2)
 
     def highlight(self, win):
         x = self.col * self.cell_size
@@ -47,7 +51,10 @@ class Cell:
         pygame.draw.rect(win, "red", (x, y , self.cell_size, self.cell_size))
 
 class Grid:
-    # forme une liste 2D d'objets cell
+    """
+    forme une liste 2D d'objets cell
+    """
+    
     def __init__(self, rows, cols, cell_size, win):
         self.rows = rows
         self.cols = cols
@@ -123,8 +130,9 @@ class Grid:
         pygame.display.update()
 
 
-    # Algo for maze gen
+    
     def maze_gen(self, loops=False):
+        """Algo for maze gen"""
         if self.stack:
             self.current_cell = self.stack.pop()
             self.current_cell.visited = True
@@ -148,14 +156,21 @@ class Grid:
             self.current_cell = None
 
     def ij_to_num(self, row, col):
+        """(i,j) to num"""
         return row * self.cols + col + 1
+        
+
     
     def num_to_ij(self, num):
+        """num to (i,j)"""
         row = (num-1) // self.cols
-        col = (num-1) % self.cols
+        col = (num-1) - (row * self.cols)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
         return row, col
     
     def get_accessible_neighbors(self, row, col):
+        """
+        
+        """
         free_neighbors = {}
         neighbors = self.get_neighbors(row, col)
         cell = self.get_cell(row, col)
@@ -166,22 +181,84 @@ class Grid:
                 
         return free_neighbors
 
-
-    def get_edge_list(self):
+    def get_cell_and_neighbors_list_in_num_coords(self):
+        """
+        
+        """
         list = []
 
         for row in self.grid:
             for cell in row:
                 free_neighbors = self.get_accessible_neighbors(cell.row, cell.col)
                 for neighbor in free_neighbors.values():
-                    c = self.ij_to_num(cell.row, cell.col)
-                    n = self.ij_to_num(neighbor.row, neighbor.col)
-                    if [n, c, 1] not in list:
-                        list.append([c, n, 1])
+                    start_cell = None
+                    neighbor_cell = None
+                    
+                    start_cell = self.ij_to_num(cell.row, cell.col)
+                    neighbor_cell = self.ij_to_num(neighbor.row, neighbor.col)
+                    
+                    if [neighbor_cell, start_cell, 1] not in list:
+                        list.append([start_cell, neighbor_cell, 1])
                     
         return list
 
-    def draw_edges(self):
+    def draw_nodes(self):
+        """
+        
+        """
+        width = self.cell_size / 10
+        for row in self.grid:
+            for cell in row:
+                (x, y) = self.from_row_col_coords_to_pygame_coords(cell.row, cell.col)
+
+                pygame.draw.circle(self.win, 'green', (x, y), width)
+    # def draw_green_lines(self):
+    #     """
+    #     largeur_de_la_ligne = self.cell_size / 20
+    #     """
+    #     list = []
+
+    #     for row in self.grid:
+    #         for cell in row:
+    #             free_neighbors = self.get_accessible_neighbors(cell.row, cell.col)
+    #             for neighbor in free_neighbors.values():
+    #                 start_cell = self.from_row_col_coords_to_pygame_coords(cell.row, cell.col)
+    #                 neighbor_cell = self.from_row_col_coords_to_pygame_coords(neighbor.row, neighbor.col)
+    #                 if [start_cell, neighbor_cell, 1] not in list:
+    #                     list.append([start_cell, neighbor_cell, 1])
+    #                     pygame.draw.line(self.win, 'green',start_cell, neighbor_cell, 2)
+    
+    def draw_green_lines(self):
+        cell_and_neighbors_list = self.get_cell_and_neighbors_list_in_num_coords()
+        for i in cell_and_neighbors_list:
+            #get coords in num
+            start_cell = i[0]
+            neighbor_cell = i[1]
+            #convert from num to pygame cords
+            start_cell_py_coords = self.from_num_coords_to_pygame_coords(start_cell)
+            neighbor_cell_py_coords = self.from_num_coords_to_pygame_coords(neighbor_cell)
+            pygame.draw.line(self.win, 'green',start_cell_py_coords, neighbor_cell_py_coords, 2)
+
+
+    def from_row_col_coords_to_pygame_coords(self, row, col):
+        """
+        
+        """
+        x = self.cell_size*col + self.cell_size/2
+        y = self.cell_size*row + self.cell_size/2
+        return (x, y)
+    
+    def from_num_coords_to_pygame_coords(self, num_coord):
+        """
+        
+        """
+        (row, col) = self.num_to_ij(num_coord)
+        x = self.cell_size*col + self.cell_size/2
+        y = self.cell_size*row + self.cell_size/2
+        return (x, y)
+
+
+    def draw_edges(self): 
         ...
             
             
@@ -194,4 +271,3 @@ class Grid:
 
     def a_star(self):
         ...
-
