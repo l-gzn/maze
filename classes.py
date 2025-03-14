@@ -61,18 +61,23 @@ class Grid:
         self.cell_size = cell_size
         self.win = win
         self.grid = [[Cell(row, col, cell_size) for col in range(cols)] for row in range(rows)]
-        self.grid_with_walls = [[1 for col in range(2*cols-1)] for row in range(2*rows-1)] # 0 == no wall 1 == wall
-        for i in range(2*rows-1):
-            for j in range(2*cols-1):
-                if i%2==0 and j%2==0:
-                    self.grid_with_walls[i][j] = 0 
-
+        
         # For maze gen
         self.stack = deque()
         self.current_cell = self.grid[random.randint(0, rows-1)][random.randint(0, cols-1)]
         self.current_cell.visited = True
         self.stack.append(self.current_cell)
 
+        # For maze solve
+        self.adjacency_list = None
+        self.current = 1 # Starting cell
+        self.end = self.rows*self.cols
+        self.visited = set()
+        self.visited.add(self.current)
+        
+        
+
+        
 
     def get_cell(self, row, col):
         # access each cell in the grid
@@ -102,17 +107,15 @@ class Grid:
         if cell1.row == cell2.row:
             if cell1.col < cell2.col:
                 cell1.remove_wall(cell2, "right")
-                self.grid_with_walls[2*cell1.row][2*(cell1.col+1)-1] = 0 # 0 == no wall 1 == wall
             else:
                 cell1.remove_wall(cell2, "left")
-                self.grid_with_walls[2*cell2.row][2*(cell2.col+1)-1] = 0
+                
         elif cell1.col == cell2.col:
             if cell1.row < cell2.row:
                 cell1.remove_wall(cell2, "bottom")
-                self.grid_with_walls[2*(cell1.row+1)-1][2*cell1.col] = 0
             else:
                 cell1.remove_wall(cell2, "top")
-                self.grid_with_walls[2*(cell2.row+1)-1][2*cell2.col] = 0
+                
 
 
     # Draws grid and current cell to pygame window
@@ -181,63 +184,69 @@ class Grid:
                 
         return free_neighbors
 
-    def get_cell_and_neighbors_list_in_num_coords(self):
+    def get_adjacency_list(self, weights=True):
         """
-        
+        Returns an adjacency list of the maze with each cell in numeric coordinates.
+
+        Format: {start_cell: [(neighbor_cell, weight), ...]}
         """
-        list = []
+        adjacency_list = {}
 
         for row in self.grid:
             for cell in row:
+                start_cell = self.ij_to_num(cell.row, cell.col)
                 free_neighbors = self.get_accessible_neighbors(cell.row, cell.col)
+
+                if start_cell not in adjacency_list:
+                    adjacency_list[start_cell] = []
+
                 for neighbor in free_neighbors.values():
-                    start_cell = None
-                    neighbor_cell = None
-                    
-                    start_cell = self.ij_to_num(cell.row, cell.col)
                     neighbor_cell = self.ij_to_num(neighbor.row, neighbor.col)
                     
-                    if [neighbor_cell, start_cell, 1] not in list:
-                        list.append([start_cell, neighbor_cell, 1])
-                    
-        return list
+                    # Add the connection (undirected graph)
+                    if weights:
+                        adjacency_list[start_cell].append((neighbor_cell, 1))
+                    else:
+                        adjacency_list[start_cell].append(neighbor_cell)
+
+        self.adjacency_list = adjacency_list
+        return adjacency_list
 
     def draw_nodes(self):
         """
-        
+        Draws nodes at each cell position in the maze
         """
+        adjacency_list = self.get_adjacency_list()
         width = self.cell_size / 10
-        for row in self.grid:
-            for cell in row:
-                (x, y) = self.from_row_col_coords_to_pygame_coords(cell.row, cell.col)
+        
 
-                pygame.draw.circle(self.win, 'green', (x, y), width)
-    # def draw_green_lines(self):
-    #     """
-    #     largeur_de_la_ligne = self.cell_size / 20
-    #     """
-    #     list = []
+        for node in adjacency_list.keys():  # Iterate through node keys (numeric cell coordinates)
+            row, col = self.num_to_ij(node)  # Convert numeric ID back to (row, col)
+            (x, y) = self.from_row_col_coords_to_pygame_coords(row, col)
 
-    #     for row in self.grid:
-    #         for cell in row:
-    #             free_neighbors = self.get_accessible_neighbors(cell.row, cell.col)
-    #             for neighbor in free_neighbors.values():
-    #                 start_cell = self.from_row_col_coords_to_pygame_coords(cell.row, cell.col)
-    #                 neighbor_cell = self.from_row_col_coords_to_pygame_coords(neighbor.row, neighbor.col)
-    #                 if [start_cell, neighbor_cell, 1] not in list:
-    #                     list.append([start_cell, neighbor_cell, 1])
-    #                     pygame.draw.line(self.win, 'green',start_cell, neighbor_cell, 2)
+            pygame.draw.circle(self.win, 'green', (x, y), width)
     
     def draw_green_lines(self):
-        cell_and_neighbors_list = self.get_cell_and_neighbors_list_in_num_coords()
-        for i in cell_and_neighbors_list:
-            #get coords in num
-            start_cell = i[0]
-            neighbor_cell = i[1]
-            #convert from num to pygame cords
+        """
+        Draws green lines between connected nodes using the adjacency list.
+        Ensures each edge is drawn only once.
+        """
+        adjacency_list = self.get_adjacency_list()
+
+        drawn_edges = set()  # To prevent drawing duplicate edges
+
+        for start_cell, neighbors in adjacency_list.items():
             start_cell_py_coords = self.from_num_coords_to_pygame_coords(start_cell)
-            neighbor_cell_py_coords = self.from_num_coords_to_pygame_coords(neighbor_cell)
-            pygame.draw.line(self.win, 'green',start_cell_py_coords, neighbor_cell_py_coords, 2)
+
+            for neighbor_cell, _ in neighbors:  # (neighbor, weight)
+                if (neighbor_cell, start_cell) in drawn_edges:
+                    continue  # Skip if already drawn (prevents duplicates)
+
+                neighbor_cell_py_coords = self.from_num_coords_to_pygame_coords(neighbor_cell)
+                pygame.draw.line(self.win, 'green', start_cell_py_coords, neighbor_cell_py_coords, 2)
+                drawn_edges.add((start_cell, neighbor_cell))  # Mark as drawn
+
+            pygame.display.update()  # Refresh the display
 
 
     def from_row_col_coords_to_pygame_coords(self, row, col):
@@ -258,12 +267,73 @@ class Grid:
         return (x, y)
 
 
-    def draw_edges(self): 
+    def is_node(self, n):
+        """
+        returns true if a cell is either start, end, dead end or crossroad
+        """
+
+        if n == 1 or n == self.rows*self.cols:
+            return True
+
+        row, col = self.num_to_ij(n)
+        cell = self.get_cell(row, col)
+        counter = 0
+
+        for direction in cell.walls:
+            if cell.walls[direction]:
+                counter += 1
+
+        if counter != 2:
+            return True
+        else:
+            return False
+            
+    def get_list_of_nodes(self):
+        """
+        returns a list of the nodes
+        """
+        list = []
+        for row in self.grid:
+            for cell in row:
+                if self.is_node(self.ij_to_num(cell.row, cell.col)):
+                    list.append(self.ij_to_num(cell.row, cell.col))
+        return list
+    
+
+    def get_path_2_nodes(self, start, end):
+        """
+        returns the shortest path between 2 nodes
+        """
+        
+
+    def get_reduced_adjacency_list(self):
         ...
-            
-            
+        
+
     def dfs(self):
-        ...
+        self.stack.append(self.current)
+
+        if self.end not in self.visited:
+            a = 0
+            b = len(self.adjacency_list[self.current])
+            
+            while a < b:
+                neighbor = self.adjacency_list[self.current][a][0]
+                if neighbor not in self.visited: 
+                    self.stack.append(neighbor)
+                    self.visited.add(neighbor)
+                    self.current = neighbor
+                else:
+                    a += 1
+                
+                    
+
+            
+            
+
+
+
+            
 
 
     def dijkstra(self):
