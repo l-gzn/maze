@@ -5,9 +5,9 @@ from classes import Grid
 pygame.init()
 
 
-WIDTH = 300
-HEIGHT = 300
-ROWS, COLS = 4, 4
+WIDTH = 600
+HEIGHT = 600
+ROWS, COLS = 100, 100
 
 
 CELL_SIZE = WIDTH // COLS
@@ -31,19 +31,19 @@ while running:
             running = False
 
     while grid.current_cell:
-        grid.draw()
         grid.maze_gen()
         pygame.time.delay(0)
 
     if not Maze_done:
         grid.adjacency_list = grid.get_adjacency_list()
-        print(grid.adjacency_list)
+        path = grid.dfs()
+        print(path)
         Maze_done = True
 
-    if not draw_edges:
-        grid.draw_nodes()
-        grid.draw_green_lines()
-        draw_edges = True
+    # if not draw_edges:
+    #     grid.draw_nodes()
+    #     grid.draw_green_lines()
+    #     draw_edges = True
     
     pygame.display.update()
     clock.tick(120)
