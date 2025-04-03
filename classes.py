@@ -1,6 +1,7 @@
 import random
 import time
 from collections import deque
+from queue import PriorityQueue
 
 import pygame
 
@@ -70,7 +71,11 @@ class Grid:
     forme une liste 2D d'objets cell
     """
 
-    def __init__(self, rows, cols, cell_size, win):
+    def __init__(self, rows, cols, cell_size, win, seed=42):
+        import random
+
+        random.seed(seed)  # Fixed seed for reproducibility
+
         self.rows = rows
         self.cols = cols
         self.cell_size = cell_size
@@ -79,8 +84,9 @@ class Grid:
             [Cell(row, col, cell_size) for col in range(cols)] for row in range(rows)
         ]
 
-        # For maze gen
+        # For maze generation
         self.stack = deque()
+        # Pick a random starting cell using the fixed seed
         self.current_cell = self.grid[random.randint(0, rows - 1)][
             random.randint(0, cols - 1)
         ]
@@ -160,7 +166,7 @@ class Grid:
             unvisited_cells = [cell for cell in neighbors.values() if not cell.visited]
 
             # Small chance to remove additional walls, creating more loops
-            if loops and random.random() < 0.25:
+            if loops and random.random() < 0.1:
                 loops = [cell for cell in neighbors.values() if cell.visited]
                 if loops:
                     chosen_cell = random.choice(loops)
@@ -333,15 +339,20 @@ class Grid:
     def get_reduced_adjacency_list(self): ...
 
     def dfs(self):
-        self.stack.append(self.current)
+        self.stack.append(1)
 
         while self.end not in self.visited:
+            # Draw all visited cells in orange
+            for cell in self.visited:
+                row, col = self.num_to_ij(cell)
+                self.draw_square(row, col, background_col="orange")
+            # Draw the current cell in green
             row, col = self.num_to_ij(self.current)
-            self.draw_square(row, col, background_col="orange")
+            self.draw_square(row, col, background_col="green")
+            time.sleep(0)
 
             neighbors = self.adjacency_list[self.current]
             unvisited = [n[0] for n in neighbors if n[0] not in self.visited]
-
             if unvisited:
                 chosen_neighbor = random.choice(unvisited)
                 self.stack.append(chosen_neighbor)
@@ -351,20 +362,101 @@ class Grid:
                 self.stack.pop()
                 self.current = self.stack[-1]
 
-        # First draw the end cell in orange
+        # Draw the end cell in orange before showing final path
         x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
         pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
-        pygame.display.update()
-        time.sleep(0.5)
+        time.sleep(0)
 
-        # Now redraw the entire path in red (including the end cell)
+        # Redraw the complete path in red, including the end cell
         for cell in self.stack:
             row, col = self.num_to_ij(cell)
             self.draw_square(row, col, background_col="red")
-            time.sleep(0.01)
+            time.sleep(0)
+        pygame.display.update()
 
         return list(self.stack)
 
-    def dijkstra(self): ...
+    def h(self, n, null=False):
+        """
+        heuristic function for a_star
+        null = True if you want to use dijkstra
+        """
+        if null:
+            return 0
 
-    def a_star(self): ...
+        # Manhattan distance
+        row, col = self.num_to_ij(n)
+        end_row, end_col = self.num_to_ij(self.end)
+        return abs(row - end_row) + abs(col - end_col)
+
+    def reconstruct_path(self, came_from, current):
+        path = [current]
+        while current in came_from:
+            current = came_from[current]
+            path.append(current)
+        path.reverse()
+        return path
+
+    def a_star(self, dijkstra=False):
+        count = 0
+        open_set = PriorityQueue()
+        open_set.put((self.h(1, null=dijkstra), count, 1))
+        came_from = {}
+        g_score = {
+            spot: float("inf")
+            for row in self.grid
+            for spot in [self.ij_to_num(cell.row, cell.col) for cell in row]
+        }
+        g_score[1] = 0
+        f_score = {
+            spot: float("inf")
+            for row in self.grid
+            for spot in [self.ij_to_num(cell.row, cell.col) for cell in row]
+        }
+        f_score[1] = self.h(1, null=dijkstra)
+        open_set_hash = {1}
+
+        last_current = None  # Keep track of the previously drawn current cell
+
+        while not open_set.empty():
+            current = open_set.get()[2]  # cell number
+            open_set_hash.remove(current)
+
+            # Update only the cell that changed from last iteration:
+            if last_current is not None and last_current != current:
+                # Redraw the previous current as visited (orange)
+                row, col = self.num_to_ij(last_current)
+                self.draw_square(row, col, background_col="orange")
+
+            # Draw the current cell in green
+            row, col = self.num_to_ij(current)
+            self.draw_square(row, col, background_col="green")
+            last_current = current
+            time.sleep(0)  # Minimal delay
+
+            if current == self.end:
+                # Draw the end cell in orange
+                row, col = self.num_to_ij(self.end)
+                self.draw_square(row, col, background_col="orange")
+                time.sleep(0)
+
+                # Reconstruct and then draw the final path in red.
+                path = self.reconstruct_path(came_from, current)
+                for cell in path:
+                    row, col = self.num_to_ij(cell)
+                    self.draw_square(row, col, background_col="red")
+                    time.sleep(0)
+                return path
+
+            for neighbor, weight in self.adjacency_list[current]:
+                temp_g_score = g_score[current] + weight
+                if temp_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = temp_g_score
+                    f_score[neighbor] = temp_g_score + self.h(neighbor, null=dijkstra)
+                    if neighbor not in open_set_hash:
+                        count += 1
+                        open_set.put((f_score[neighbor], count, neighbor))
+                        open_set_hash.add(neighbor)
+                        self.visited.add(neighbor)
+        return None

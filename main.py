@@ -1,5 +1,5 @@
 import pygame
-
+import random
 from classes import Grid
 
 pygame.init()
@@ -16,8 +16,8 @@ pygame.display.set_caption("Maze")
 clock = pygame.time.Clock()
 running = True
 
-
-grid = Grid(ROWS, COLS, CELL_SIZE, WIN)
+random_seed = random.randint(0, 1000)
+grid = Grid(ROWS, COLS, CELL_SIZE, WIN, seed=random_seed)
 
 
 Maze_done = False
@@ -31,14 +31,16 @@ while running:
             running = False
 
     while grid.current_cell:
-        grid.maze_gen()
-        pygame.time.delay(0)
+        grid.maze_gen(loops=True)
+        # pygame.time.delay(90)
 
     if not Maze_done:
         grid.adjacency_list = grid.get_adjacency_list()
-        path = grid.dfs()
+        # print(grid.adjacency_list)
+        path = grid.a_star(dijkstra=False)
         print(path)
         Maze_done = True
+
 
     # if not draw_edges:
     #     grid.draw_nodes()
