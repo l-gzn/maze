@@ -236,6 +236,17 @@ class Grid:
 
         self.adjacency_list = adjacency_list
         return adjacency_list
+    
+    def get_neighbours_list(self):
+        """
+        Returns a dict of all neighbours from the current adjacency_list, where the index is the cell index
+        It doesn't take into account the weights
+        """
+        neighbours_list = {}
+        for i in self.adjacency_list.keys():
+            neighbours_list[i] = [j[0] for j in self.adjacency_list[i]]
+        return neighbours_list
+    
 
     def draw_nodes(self):
         """
@@ -460,3 +471,61 @@ class Grid:
                         open_set_hash.add(neighbor)
                         self.visited.add(neighbor)
         return None
+    
+    
+    def bfs(self):
+        '''
+        adasd
+        '''
+        visited_cells = []
+        queue = [self.current]
+
+        while self.end not in queue:
+            
+            if queue[0] in visited_cells:
+                queue.pop()
+                continue
+        
+            neighbours = self.get_neighbours_list()[queue[0]]
+            queue.extend([i for i in neighbours if i not in visited_cells and i not in queue])
+            visited_cells.append(queue[0])
+            row, col = self.num_to_ij(visited_cells[-1])
+            self.draw_square(row, col, background_col="orange")
+            queue.pop(0)
+        visited_cells.append(self.end)
+        x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
+        pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
+        pygame.display.update()
+        time.sleep(0.5)
+
+        # find the solution
+        target_index = len(visited_cells) - 1
+        sol = [visited_cells[-1]]
+
+        while self.current not in sol:
+            for i in range(target_index - 1, -1, -1):
+                if visited_cells[i] in self.get_neighbours_list()[sol[-1]]:
+                    sol.append(visited_cells[i])
+                    target_index = i
+                    break
+        
+        # First draw the end cell in orange
+        x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
+        pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
+        pygame.display.update()
+        time.sleep(0.5)
+        sol.reverse()
+        # Now redraw the entire path in red (including the end cell)
+        for cell in sol:
+            row, col = self.num_to_ij(cell)
+            self.draw_square(row, col, background_col="red")
+            time.sleep(0.00001)
+        
+        
+        return sol
+            
+    # target cell
+    # loop de 0  à (exclusivement) son index
+    # trouve qui a le target cell comme neighbour
+    # target cell == neighbour cell
+

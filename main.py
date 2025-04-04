@@ -7,7 +7,7 @@ pygame.init()
 
 WIDTH = 600
 HEIGHT = 600
-ROWS, COLS = 100, 100
+ROWS, COLS = 10,10
 
 
 CELL_SIZE = WIDTH // COLS
