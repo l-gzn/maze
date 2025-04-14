@@ -386,7 +386,7 @@ class Grid:
             self.draw_square(row, col, background_col="red")
             time.sleep(0)
 
-        return list(self.stack), operations, len(self.visited)
+        return list(self.stack), operations
 
     def h(self, n, null=False):
         """
@@ -464,7 +464,7 @@ class Grid:
                     row, col = self.num_to_ij(cell)
                     self.draw_square(row, col, background_col="red")
                     time.sleep(0)
-                return path, operations, self.visited
+                return path, operations
 
             # Process neighbors
             for neighbor, weight in self.adjacency_list[current]:
@@ -524,4 +524,4 @@ class Grid:
             for cell in solution:
                 row, col = self.num_to_ij(cell)
                 self.draw_square(row, col, background_col="red")
-        return solution, operations, len(self.visited)
+        return solution, operations
