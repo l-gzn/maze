@@ -28,7 +28,7 @@ class Cell:
             self.walls["left"] = False
             other.walls["right"] = False
 
-    def draw(self, win, wall_color="white", background_color="purple"):
+    def draw(self, win, wall_color="white", background_color="purple", line_width=1):
         """
         dessine les murs du labyrinthes et background
         """
@@ -40,14 +40,16 @@ class Cell:
             )
 
         if self.walls["top"]:
-            pygame.draw.line(win, wall_color, (x, y), (x + self.cell_size, y), 2)
+            pygame.draw.line(
+                win, wall_color, (x, y), (x + self.cell_size, y), line_width
+            )
         if self.walls["right"]:
             pygame.draw.line(
                 win,
                 wall_color,
                 (x + self.cell_size, y),
                 (x + self.cell_size, y + self.cell_size),
-                2,
+                line_width,
             )
         if self.walls["bottom"]:
             pygame.draw.line(
@@ -55,10 +57,12 @@ class Cell:
                 wall_color,
                 (x + self.cell_size, y + self.cell_size),
                 (x, y + self.cell_size),
-                2,
+                line_width,
             )
         if self.walls["left"]:
-            pygame.draw.line(win, wall_color, (x, y + self.cell_size), (x, y), 2)
+            pygame.draw.line(
+                win, wall_color, (x, y + self.cell_size), (x, y), line_width
+            )
 
     def highlight(self, win):
         x = self.col * self.cell_size
@@ -137,26 +141,32 @@ class Grid:
             else:
                 cell1.remove_wall(cell2, "top")
 
-    def draw_square(self, row, col, wall_col="white", background_col="purple"):
+    def draw_square(
+        self, row, col, wall_col="white", background_col="purple", surface=None
+    ):
+        if surface is None:
+            surface = self.win
         Cell.draw(
             self.grid[row][col],
-            self.win,
+            surface,
             wall_color=wall_col,
             background_color=background_col,
         )
         x, y = (col - 1) * self.cell_size, (row - 1) * self.cell_size
+        # Update a region on the surface if needed. You can omit display updates here.
         pygame.display.update((x, y, self.cell_size * 3, self.cell_size * 3))
 
-    def maze_gen(self, loops=False):
+    def maze_gen(self, loops=False, skip=False):
         """
         Algo for maze gen, each iteration removes walls between cells
         Must be used inside a while loop to see the maze being generated
         """
 
         # Colors cells
-        self.draw_square(
-            self.current_cell.row, self.current_cell.col, background_col="purple"
-        )
+        if not skip:
+            self.draw_square(
+                self.current_cell.row, self.current_cell.col, background_col="purple"
+            )
 
         if self.stack:
             self.current_cell = self.stack.pop()
@@ -166,7 +176,7 @@ class Grid:
             unvisited_cells = [cell for cell in neighbors.values() if not cell.visited]
 
             # Small chance to remove additional walls, creating more loops
-            if loops and random.random() < 0.1:
+            if loops and random.random() < 0.25:
                 loops = [cell for cell in neighbors.values() if cell.visited]
                 if loops:
                     chosen_cell = random.choice(loops)
@@ -182,7 +192,7 @@ class Grid:
             self.current_cell = None
 
         # Highlight current cell
-        if self.current_cell:
+        if self.current_cell and not skip:
             self.draw_square(
                 self.current_cell.row, self.current_cell.col, background_col="red"
             )
@@ -236,17 +246,6 @@ class Grid:
 
         self.adjacency_list = adjacency_list
         return adjacency_list
-    
-    def get_neighbours_list(self):
-        """
-        Returns a dict of all neighbours from the current adjacency_list, where the index is the cell index
-        It doesn't take into account the weights
-        """
-        neighbours_list = {}
-        for i in self.adjacency_list.keys():
-            neighbours_list[i] = [j[0] for j in self.adjacency_list[i]]
-        return neighbours_list
-    
 
     def draw_nodes(self):
         """
@@ -350,20 +349,18 @@ class Grid:
     def get_reduced_adjacency_list(self): ...
 
     def dfs(self):
+        operations = 0
+        self.visited = {1}
         self.stack.append(1)
 
         while self.end not in self.visited:
-            # Draw all visited cells in orange
-            for cell in self.visited:
-                row, col = self.num_to_ij(cell)
-                self.draw_square(row, col, background_col="orange")
-            # Draw the current cell in green
             row, col = self.num_to_ij(self.current)
-            self.draw_square(row, col, background_col="green")
-            time.sleep(0)
+            self.draw_square(row, col, background_col="orange")
+            operations += 1
 
             neighbors = self.adjacency_list[self.current]
             unvisited = [n[0] for n in neighbors if n[0] not in self.visited]
+
             if unvisited:
                 chosen_neighbor = random.choice(unvisited)
                 self.stack.append(chosen_neighbor)
@@ -372,6 +369,11 @@ class Grid:
             else:
                 self.stack.pop()
                 self.current = self.stack[-1]
+
+            # Draw the current cell in green
+            row, col = self.num_to_ij(self.current)
+            self.draw_square(row, col, background_col="green")
+            time.sleep(0)
 
         # Draw the end cell in orange before showing final path
         x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
@@ -383,9 +385,8 @@ class Grid:
             row, col = self.num_to_ij(cell)
             self.draw_square(row, col, background_col="red")
             time.sleep(0)
-        pygame.display.update()
 
-        return list(self.stack)
+        return list(self.stack), operations, len(self.visited)
 
     def h(self, n, null=False):
         """
@@ -409,6 +410,8 @@ class Grid:
         return path
 
     def a_star(self, dijkstra=False):
+        self.visited = {1}  # Start with the first cell as visited
+        operations = 0
         count = 0
         open_set = PriorityQueue()
         open_set.put((self.h(1, null=dijkstra), count, 1))
@@ -427,38 +430,43 @@ class Grid:
         f_score[1] = self.h(1, null=dijkstra)
         open_set_hash = {1}
 
-        last_current = None  # Keep track of the previously drawn current cell
+        # Draw the starting cell as visited (orange)
+        row, col = self.num_to_ij(1)
+        self.draw_square(row, col, background_col="orange")
+        last_current = 1  # Starting cell
 
         while not open_set.empty():
-            current = open_set.get()[2]  # cell number
+            current = open_set.get()[2]  # Get the current cell
             open_set_hash.remove(current)
 
-            # Update only the cell that changed from last iteration:
+            # Mark the previous cell as visited (orange)
             if last_current is not None and last_current != current:
-                # Redraw the previous current as visited (orange)
                 row, col = self.num_to_ij(last_current)
                 self.draw_square(row, col, background_col="orange")
 
             # Draw the current cell in green
             row, col = self.num_to_ij(current)
             self.draw_square(row, col, background_col="green")
+            operations += 1
             last_current = current
             time.sleep(0)  # Minimal delay
 
+            # If the end is reached, reconstruct the path
             if current == self.end:
                 # Draw the end cell in orange
                 row, col = self.num_to_ij(self.end)
                 self.draw_square(row, col, background_col="orange")
                 time.sleep(0)
 
-                # Reconstruct and then draw the final path in red.
+                # Reconstruct and then draw the final path in red
                 path = self.reconstruct_path(came_from, current)
                 for cell in path:
                     row, col = self.num_to_ij(cell)
                     self.draw_square(row, col, background_col="red")
                     time.sleep(0)
-                return path
+                return path, operations, self.visited
 
+            # Process neighbors
             for neighbor, weight in self.adjacency_list[current]:
                 temp_g_score = g_score[current] + weight
                 if temp_g_score < g_score[neighbor]:
@@ -469,63 +477,51 @@ class Grid:
                         count += 1
                         open_set.put((f_score[neighbor], count, neighbor))
                         open_set_hash.add(neighbor)
-                        self.visited.add(neighbor)
+                        self.visited.add(neighbor)  # Mark the neighbor as visited
+
+                        # Draw the neighbor as visited (orange)
+                        row, col = self.num_to_ij(neighbor)
+                        self.draw_square(row, col, background_col="orange")
+
         return None
-    
-    
+
     def bfs(self):
-        '''
-        adasd
-        '''
-        visited_cells = []
-        queue = [self.current]
+        operations = 0
+        self.visited = {1}
+        queue = [
+            (self.current, [self.current])
+        ]  # queue stores (current_cell, path_so_far)
+        solution = None
 
-        while self.end not in queue:
-            
-            if queue[0] in visited_cells:
-                queue.pop()
-                continue
-        
-            neighbours = self.get_neighbours_list()[queue[0]]
-            queue.extend([i for i in neighbours if i not in visited_cells and i not in queue])
-            visited_cells.append(queue[0])
-            row, col = self.num_to_ij(visited_cells[-1])
+        while queue:
+            current, path = queue.pop(0)
+
+            if current == self.end:
+                solution = (
+                    path  # Found the end, and we already have the full solution path
+                )
+                break
+
+            self.visited.add(current)
+
+            # Visualize the exploration
+            row, col = self.num_to_ij(current)
             self.draw_square(row, col, background_col="orange")
-            queue.pop(0)
-        visited_cells.append(self.end)
-        x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
-        pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
-        pygame.display.update()
-        time.sleep(0.5)
+            operations += 1
 
-        # find the solution
-        target_index = len(visited_cells) - 1
-        sol = [visited_cells[-1]]
+            # Explore all neighbors (each neighbor is a tuple: (neighbor, weight))
+            for neighbor_tuple in self.adjacency_list[current]:
+                neighbor = (
+                    neighbor_tuple[0]
+                    if isinstance(neighbor_tuple, tuple)
+                    else neighbor_tuple
+                )
+                if neighbor not in self.visited and neighbor not in [c for c, _ in queue]:
+                    queue.append((neighbor, path + [neighbor]))
 
-        while self.current not in sol:
-            for i in range(target_index - 1, -1, -1):
-                if visited_cells[i] in self.get_neighbours_list()[sol[-1]]:
-                    sol.append(visited_cells[i])
-                    target_index = i
-                    break
-        
-        # First draw the end cell in orange
-        x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
-        pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
-        pygame.display.update()
-        time.sleep(0.5)
-        sol.reverse()
-        # Now redraw the entire path in red (including the end cell)
-        for cell in sol:
-            row, col = self.num_to_ij(cell)
-            self.draw_square(row, col, background_col="red")
-            time.sleep(0.00001)
-        
-        
-        return sol
-            
-    # target cell
-    # loop de 0  à (exclusivement) son index
-    # trouve qui a le target cell comme neighbour
-    # target cell == neighbour cell
-
+        # Draw the final path in red, including the end cell
+        if solution:
+            for cell in solution:
+                row, col = self.num_to_ij(cell)
+                self.draw_square(row, col, background_col="red")
+        return solution, operations, len(self.visited)
