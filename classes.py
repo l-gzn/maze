@@ -1,7 +1,7 @@
+import heapq
 import random
 import time
 from collections import deque
-from queue import PriorityQueue
 
 import pygame
 
@@ -13,6 +13,7 @@ class Cell:
         self.cell_size = cell_size
         self.walls = {"top": True, "right": True, "bottom": True, "left": True}
         self.visited = False
+        self.obstacle = False
 
     def remove_wall(self, other, direction):
         if direction == "top":
@@ -28,13 +29,20 @@ class Cell:
             self.walls["left"] = False
             other.walls["right"] = False
 
-    def draw(self, win, wall_color="white", background_color="purple", line_width=1):
+    def draw(
+            self,
+            win,
+            wall_color="white", 
+            background_color="purple", 
+            line_width=1,
+            force=False
+            ):
         """
         dessine les murs du labyrinthes et background
         """
         x = self.col * self.cell_size
         y = self.row * self.cell_size
-        if self.visited:
+        if self.visited or force:
             pygame.draw.rect(
                 win, background_color, (x, y, self.cell_size, self.cell_size)
             )
@@ -151,12 +159,13 @@ class Grid:
             surface,
             wall_color=wall_col,
             background_color=background_col,
+            force=True
         )
         x, y = (col - 1) * self.cell_size, (row - 1) * self.cell_size
         # Update a region on the surface if needed. You can omit display updates here.
         pygame.display.update((x, y, self.cell_size * 3, self.cell_size * 3))
 
-    def maze_gen(self, loops=False, skip=False):
+    def maze_gen(self, loops=False, skip=False, obstacles=False):
         """
         Algo for maze gen, each iteration removes walls between cells
         Must be used inside a while loop to see the maze being generated
@@ -164,9 +173,18 @@ class Grid:
 
         # Colors cells
         if not skip:
-            self.draw_square(
-                self.current_cell.row, self.current_cell.col, background_col="purple"
-            )
+            if not self.current_cell.obstacle:
+                self.draw_square(
+                    self.current_cell.row,
+                    self.current_cell.col,
+                    background_col="purple",
+                )
+            else:
+                self.draw_square(
+                    self.current_cell.row,
+                    self.current_cell.col,
+                    background_col="deeppink",
+                )
 
         if self.stack:
             self.current_cell = self.stack.pop()
@@ -185,6 +203,10 @@ class Grid:
             if unvisited_cells:
                 self.stack.append(self.current_cell)
                 chosen_cell = random.choice(unvisited_cells)
+
+                if obstacles and random.random() < 0.15:
+                    chosen_cell.obstacle = True
+
                 self.remove_wall_between(self.current_cell, chosen_cell)
                 self.stack.append(chosen_cell)
 
@@ -240,9 +262,27 @@ class Grid:
 
                     # Add the connection (undirected graph)
                     if weights:
-                        adjacency_list[start_cell].append((neighbor_cell, 1))
+                        weight = 1000 if cell.obstacle or neighbor.obstacle else 1
+
+                        # Add the connection only if it doesn't already exist
+                        if (neighbor_cell, weight) not in adjacency_list[start_cell]:
+                            adjacency_list[start_cell].append((neighbor_cell, weight))
+
+                        # Ensure the reverse connection also has the same weight
+                        if neighbor_cell not in adjacency_list:
+                            adjacency_list[neighbor_cell] = []
+                        if (start_cell, weight) not in adjacency_list[neighbor_cell]:
+                            adjacency_list[neighbor_cell].append((start_cell, weight))
                     else:
-                        adjacency_list[start_cell].append(neighbor_cell)
+                        # Add the connection only if it doesn't already exist
+                        if neighbor_cell not in adjacency_list[start_cell]:
+                            adjacency_list[start_cell].append(neighbor_cell)
+
+                        # Ensure the reverse connection also exists
+                        if neighbor_cell not in adjacency_list:
+                            adjacency_list[neighbor_cell] = []
+                        if start_cell not in adjacency_list[neighbor_cell]:
+                            adjacency_list[neighbor_cell].append(start_cell)
 
         self.adjacency_list = adjacency_list
         return adjacency_list
@@ -309,51 +349,20 @@ class Grid:
             y = self.cell_size * row
             return (int(x), int(y))
 
-    def is_node(self, n):
+
+    def dfs(self, end_cell=None, sleep=0):
         """
-        returns true if a cell is either start, end, dead end or crossroad
+        Depth-First Search algorithm to find a path.
         """
+        if end_cell is None:
+            end_cell = self.end  # Default to the fixed end cell
 
-        if n == 1 or n == self.rows * self.cols:
-            return True
-
-        row, col = self.num_to_ij(n)
-        cell = self.get_cell(row, col)
-        counter = 0
-
-        for direction in cell.walls:
-            if cell.walls[direction]:
-                counter += 1
-
-        if counter != 2:
-            return True
-        else:
-            return False
-
-    def get_list_of_nodes(self):
-        """
-        returns a list of the nodes
-        """
-        list = []
-        for row in self.grid:
-            for cell in row:
-                if self.is_node(self.ij_to_num(cell.row, cell.col)):
-                    list.append(self.ij_to_num(cell.row, cell.col))
-        return list
-
-    def get_path_2_nodes(self, start, end):
-        """
-        returns the shortest path between 2 nodes
-        """
-
-    def get_reduced_adjacency_list(self): ...
-
-    def dfs(self):
         operations = 0
-        self.visited = {1}
-        self.stack.append(1)
+        self.visited = {self.current}
+        stack = deque()
+        stack.append(self.current)
 
-        while self.end not in self.visited:
+        while end_cell not in self.visited:
             row, col = self.num_to_ij(self.current)
             self.draw_square(row, col, background_col="orange")
             operations += 1
@@ -363,30 +372,30 @@ class Grid:
 
             if unvisited:
                 chosen_neighbor = random.choice(unvisited)
-                self.stack.append(chosen_neighbor)
+                stack.append(chosen_neighbor)
                 self.visited.add(chosen_neighbor)
                 self.current = chosen_neighbor
             else:
-                self.stack.pop()
-                self.current = self.stack[-1]
+                stack.pop()
+                self.current = stack[-1]
 
             # Draw the current cell in green
             row, col = self.num_to_ij(self.current)
             self.draw_square(row, col, background_col="green")
-            time.sleep(0)
+            time.sleep(sleep)
 
         # Draw the end cell in orange before showing final path
-        x, y = self.from_num_coords_to_pygame_coords(self.end, for_nodes=False)
+        x, y = self.from_num_coords_to_pygame_coords(end_cell, for_nodes=False)
         pygame.draw.rect(self.win, "orange", (x, y, self.cell_size, self.cell_size))
-        time.sleep(0)
+        
 
         # Redraw the complete path in red, including the end cell
-        for cell in self.stack:
+        for cell in stack:
             row, col = self.num_to_ij(cell)
             self.draw_square(row, col, background_col="red")
-            time.sleep(0)
+            time.sleep(sleep)
 
-        return list(self.stack), operations
+        return list(stack), operations
 
     def h(self, n, null=False):
         """
@@ -409,61 +418,64 @@ class Grid:
         path.reverse()
         return path
 
-    def a_star(self, dijkstra=False):
-        self.visited = {1}  # Start with the first cell as visited
+    def a_star(self, dijkstra=False, end_cell=None, sleep=0):
+        """
+        A* Search algorithm to find the shortest path.
+        """
+        if end_cell is None:
+            end_cell = self.end  # Default to the fixed end cell
+
+        self.visited = {self.current}  # Start with the first cell as visited
         operations = 0
         count = 0
-        open_set = PriorityQueue()
-        open_set.put((self.h(1, null=dijkstra), count, 1))
         came_from = {}
+        open_heap = []
+        heapq.heappush(open_heap, (self.h(self.current, null=dijkstra), self.current))
         g_score = {
             spot: float("inf")
             for row in self.grid
             for spot in [self.ij_to_num(cell.row, cell.col) for cell in row]
         }
-        g_score[1] = 0
+        g_score[self.current] = 0
         f_score = {
             spot: float("inf")
             for row in self.grid
             for spot in [self.ij_to_num(cell.row, cell.col) for cell in row]
         }
-        f_score[1] = self.h(1, null=dijkstra)
-        open_set_hash = {1}
+        f_score[self.current] = self.h(self.current, null=dijkstra)
+        open_set_hash = {self.current}
 
         # Draw the starting cell as visited (orange)
-        row, col = self.num_to_ij(1)
+        row, col = self.num_to_ij(self.current)
         self.draw_square(row, col, background_col="orange")
-        last_current = 1  # Starting cell
+        last_current = self.current  # Starting cell
 
-        while not open_set.empty():
-            current = open_set.get()[2]  # Get the current cell
+        while open_heap:
+            current_f, current = heapq.heappop(open_heap)  # Get the current cell
             open_set_hash.remove(current)
+
+            if current_f != f_score[current]:
+                continue
 
             # Mark the previous cell as visited (orange)
             if last_current is not None and last_current != current:
                 row, col = self.num_to_ij(last_current)
                 self.draw_square(row, col, background_col="orange")
+                time.sleep(sleep)
 
-            # Draw the current cell in green
-            row, col = self.num_to_ij(current)
-            self.draw_square(row, col, background_col="green")
-            operations += 1
-            last_current = current
-            time.sleep(0)  # Minimal delay
 
             # If the end is reached, reconstruct the path
-            if current == self.end:
+            if current == end_cell:
                 # Draw the end cell in orange
-                row, col = self.num_to_ij(self.end)
+                row, col = self.num_to_ij(end_cell)
                 self.draw_square(row, col, background_col="orange")
-                time.sleep(0)
 
                 # Reconstruct and then draw the final path in red
                 path = self.reconstruct_path(came_from, current)
                 for cell in path:
                     row, col = self.num_to_ij(cell)
                     self.draw_square(row, col, background_col="red")
-                    time.sleep(0)
+                    time.sleep(sleep)
                 return path, operations
 
             # Process neighbors
@@ -475,19 +487,26 @@ class Grid:
                     f_score[neighbor] = temp_g_score + self.h(neighbor, null=dijkstra)
                     if neighbor not in open_set_hash:
                         count += 1
-                        open_set.put((f_score[neighbor], count, neighbor))
+                        heapq.heappush(open_heap, (f_score[neighbor], neighbor))
                         open_set_hash.add(neighbor)
                         self.visited.add(neighbor)  # Mark the neighbor as visited
 
                         # Draw the neighbor as visited (orange)
                         row, col = self.num_to_ij(neighbor)
                         self.draw_square(row, col, background_col="orange")
+                        
 
         return None
 
-    def bfs(self):
+    def bfs(self, end_cell=None, find_deepest=False, sleep=0):
+        """
+        Breadth-First Search algorithm to find the shortest path.
+        """
+        if end_cell is None:
+            end_cell = self.end  # Default to the fixed end cell
+
         operations = 0
-        self.visited = {1}
+        self.visited = {self.current}
         queue = [
             (self.current, [self.current])
         ]  # queue stores (current_cell, path_so_far)
@@ -496,18 +515,22 @@ class Grid:
         while queue:
             current, path = queue.pop(0)
 
-            if current == self.end:
-                solution = (
-                    path  # Found the end, and we already have the full solution path
-                )
+            if not find_deepest and current == end_cell:
+                solution = path  # Found the end, and we already have the full solution path
                 break
+
+            elif find_deepest:
+                solution = path
+
 
             self.visited.add(current)
 
             # Visualize the exploration
-            row, col = self.num_to_ij(current)
-            self.draw_square(row, col, background_col="orange")
-            operations += 1
+            if not find_deepest:
+                row, col = self.num_to_ij(current)
+                self.draw_square(row, col, background_col="orange")
+                operations += 1
+                time.sleep(sleep)
 
             # Explore all neighbors (each neighbor is a tuple: (neighbor, weight))
             for neighbor_tuple in self.adjacency_list[current]:
@@ -516,12 +539,116 @@ class Grid:
                     if isinstance(neighbor_tuple, tuple)
                     else neighbor_tuple
                 )
-                if neighbor not in self.visited and neighbor not in [c for c, _ in queue]:
+                if neighbor not in self.visited and neighbor not in [
+                    c for c, _ in queue
+                ]:
                     queue.append((neighbor, path + [neighbor]))
 
         # Draw the final path in red, including the end cell
-        if solution:
+        if solution and not find_deepest:
             for cell in solution:
                 row, col = self.num_to_ij(cell)
                 self.draw_square(row, col, background_col="red")
-        return solution, operations
+            return solution, operations
+
+        elif find_deepest:
+            return path[-1]
+
+    def path_cost(self, path):
+        """
+        Returns the cost of a path and the number of obstacle cells in the path.
+        """
+        cost = 0
+        obstacle_count = 0
+
+        for i in range(len(path) - 1):
+            for neighbor in self.adjacency_list[path[i]]:
+                if neighbor[0] == path[i + 1]:
+                    cost += neighbor[1]
+                    break
+
+        # Count obstacle cells in the path
+        for cell in path:
+            row, col = self.num_to_ij(cell)
+            if self.get_cell(row, col).obstacle:
+                obstacle_count += 1
+
+        return cost, obstacle_count
+
+    def redraw_obstacles(self, path=None):
+        """
+        Redraws the obstacles in the maze.
+        """
+        # Remove color of visited cells
+        if path:
+            for row in self.grid:
+                for cell in row:
+                    if cell.visited and self.ij_to_num(cell.row, cell.col) not in path:
+                        self.draw_square(
+                            cell.row, cell.col, background_col="purple", wall_col="white"
+                        )
+
+        for row in self.grid:
+            for cell in row:
+                if cell.obstacle:
+                    self.draw_square(
+                        cell.row, cell.col, background_col="deeppink", wall_col="white"
+                    )
+        if path:
+            for cell in path:
+                row, col = self.num_to_ij(cell)
+                cell = self.get_cell(row, col)
+                if cell.obstacle:
+                    self.draw_square(
+                        cell.row, cell.col, background_col="cyan", wall_col="white"
+                    )
+
+    def new_solve(self, deepest=None, obs=False):
+        """
+        Clean the maze for a new solve
+        """
+
+        for row in self.grid:
+            for cell in row:
+                self.draw_square(cell.row, cell.col)
+
+        if obs:
+            self.redraw_obstacles()
+
+        # Recolors the deepest cell
+        if deepest:
+            deep_row, deep_col = self.num_to_ij(deepest)
+            self.draw_square(deep_row, deep_col, background_col="cyan" )
+
+        self.current = self.ij_to_num(0,0)
+        self.visited = {self.current}
+
+
+class Button():
+    def __init__(self, x, y, image, scale=1):
+        width = image.get_width()
+        height = image.get_height()
+        self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x,y)
+        self.clicked = False
+
+    def draw(self, surface):
+        action = False
+        # Get mouse position
+        pos = pygame.mouse.get_pos()
+    
+
+        # check mouseover and clicked conditions
+        if self.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
+                self.clicked = True
+                action = True
+
+        if pygame.mouse.get_pressed()[0] == 0:
+            self.clicked = False
+
+        # Draw button on screen
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
+        return action

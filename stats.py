@@ -27,9 +27,9 @@ running = True
 
 random_seed = random.randint(0, 1000)
 
-nrows = 100 # Taille du dernier labyrinthe
+nrows = 40 # Taille du dernier labyrinthe
 n = 1 # Nombre de labyrinthes par dimensions Rows x Rows
-jump = 1 # Augmentation de la taille des labyrinthes
+jump = 2 # Augmentation de la taille des labyrinthes
 
 dfs = np.zeros((nrows, n))
 a_star = np.zeros((nrows, n))
@@ -46,11 +46,12 @@ while ROWS < nrows + 1:
 
         if not Maze_done:
             grid.adjacency_list = grid.get_adjacency_list()
-            path, bfs[ROWS, i] = grid.bfs()
+            # path, bfs[ROWS, i] = grid.bfs()
             path, dfs[ROWS, i] = grid.dfs()
-            path, a_star[ROWS, i] = grid.a_star(dijkstra=False)
-            path, dijkstra[ROWS, i] = grid.a_star(dijkstra=True)
+            # path, a_star[ROWS, i] = grid.a_star(dijkstra=False)
+            # path, dijkstra[ROWS, i] = grid.a_star(dijkstra=True)
             Maze_done = True
+    
     print(f"Taille:{ROWS}X{ROWS}")
     ROWS += jump
 
@@ -63,15 +64,15 @@ dijkstra_mean = np.mean(dijkstra, axis=1)
 bfs_mean = np.mean(bfs, axis=1)
 
 
-# dfs3 = np.std(dfs, axis=1)
+dfs3 = np.std(dfs, axis=1)
 x = np.arange(0, nrows, jump)
 plt.plot(x, dfs_mean[::jump])
-plt.plot(x, a_star_mean[::jump])
-plt.plot(x, dijkstra_mean[::jump])
-plt.plot(x, bfs_mean[::jump])
+# plt.plot(x, a_star_mean[::jump])
+# plt.plot(x, dijkstra_mean[::jump])
+# plt.plot(x, bfs_mean[::jump])
 
 
-# plt.plot(x, dfs[::jump] + dfs3[::jump], "r--", label="std")
-# plt.plot(x, dfs[::jump] - dfs3[::jump], "r--")
+plt.plot(x, dfs[::jump] + dfs3[::jump], "r--", label="std")
+plt.plot(x, dfs[::jump] - dfs3[::jump], "r--")
 plt.show()
 
