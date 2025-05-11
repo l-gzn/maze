@@ -2,7 +2,7 @@ import heapq
 import random
 import time
 from collections import deque
-
+from heapdict import heapdict
 import pygame
 
 
@@ -429,8 +429,8 @@ class Grid:
         operations = 0
         count = 0
         came_from = {}
-        open_heap = []
-        heapq.heappush(open_heap, (self.h(self.current, null=dijkstra), self.current))
+        open_heap = heapdict()
+        # heapq.heappush(open_heap, (self.h(self.current, null=dijkstra), self.current))
         g_score = {
             spot: float("inf")
             for row in self.grid
@@ -443,7 +443,7 @@ class Grid:
             for spot in [self.ij_to_num(cell.row, cell.col) for cell in row]
         }
         f_score[self.current] = self.h(self.current, null=dijkstra)
-        open_set_hash = {self.current}
+        open_heap[self.current] = f_score[self.current]
 
         # Draw the starting cell as visited (orange)
         row, col = self.num_to_ij(self.current)
@@ -451,11 +451,7 @@ class Grid:
         last_current = self.current  # Starting cell
 
         while open_heap:
-            current_f, current = heapq.heappop(open_heap)  # Get the current cell
-            open_set_hash.remove(current)
-
-            if current_f != f_score[current]:
-                continue
+            current, _ = open_heap.popitem() # Get the current cell
 
             # Mark the previous cell as visited (orange)
             if last_current is not None and last_current != current:
@@ -485,16 +481,24 @@ class Grid:
                     came_from[neighbor] = current
                     g_score[neighbor] = temp_g_score
                     f_score[neighbor] = temp_g_score + self.h(neighbor, null=dijkstra)
-                    if neighbor not in open_set_hash:
-                        count += 1
-                        heapq.heappush(open_heap, (f_score[neighbor], neighbor))
-                        open_set_hash.add(neighbor)
-                        self.visited.add(neighbor)  # Mark the neighbor as visited
+                    
+                    open_heap[neighbor] = f_score[neighbor]  # Efficient update
+                    self.visited.add(neighbor)
+                    row, col = self.num_to_ij(neighbor)
+                    self.draw_square(row, col, background_col="orange")
+                    operations += 1
 
-                        # Draw the neighbor as visited (orange)
-                        row, col = self.num_to_ij(neighbor)
-                        self.draw_square(row, col, background_col="orange")
+                    # if neighbor not in open_set_hash:
+                    #     count += 1
+                    #     heapq.heappush(open_heap, (f_score[neighbor], neighbor))
+                    #     open_set_hash.add(neighbor)
+                    #     self.visited.add(neighbor)  # Mark the neighbor as visited
+
+                    # Draw the neighbor as visited (orange)
+                    row, col = self.num_to_ij(neighbor)
+                    self.draw_square(row, col, background_col="orange")
                         
+            last_current = current
 
         return None
 

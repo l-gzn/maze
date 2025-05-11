@@ -6,17 +6,14 @@ pygame.init()
 
 HEIGHT = 600
 WIDTH = HEIGHT + 200
-ROWS, COLS = 50,50
+ROWS, COLS = 50, 50
 
 CELL_SIZE = HEIGHT // COLS
 WIN = pygame.display.set_mode((WIDTH + 2, HEIGHT + 2))
 pygame.display.set_caption("Maze")
 clock = pygame.time.Clock()
 
-# Seed generator
-random_seed = random.randint(0, 1000)
-print(f"Seed:{random_seed}")
-grid = Grid(ROWS, COLS, CELL_SIZE, WIN, seed=random_seed)
+grid = Grid(ROWS, COLS, CELL_SIZE, WIN)
 Maze_done = False
 Solved = False
 deepest = None
@@ -70,6 +67,8 @@ while running:
         Maze_done = False
         WIN.fill("black", ((0,0), (WIDTH - 200, HEIGHT)))
         pygame.display.update()
+        random_seed = random.randint(0, 1000)
+        print(f"Seed:{random_seed}")
         grid = Grid(ROWS, COLS, CELL_SIZE, WIN, seed=random_seed)
 
         # Maze Generation
@@ -87,13 +86,15 @@ while running:
         grid.draw_square(deep_row, deep_col, background_col="cyan")
 
         Maze_done = True
-    
+        Solved = False
 
 
     if non_perfect_button.draw(WIN):
         Maze_done = False
         WIN.fill("black", rect=((0,0), (WIDTH - 200, HEIGHT)))
         pygame.display.update()
+        random_seed = random.randint(0, 1000)
+        print(f"Seed:{random_seed}")
         grid = Grid(ROWS, COLS, CELL_SIZE, WIN, seed=random_seed)
 
         # Maze Generation
@@ -111,7 +112,7 @@ while running:
         grid.draw_square(deep_row, deep_col, background_col="cyan")
 
         Maze_done = True
-
+        Solved = False
 
     if deepest_button.draw(WIN):
         grid.end = deepest
@@ -122,9 +123,13 @@ while running:
 
     if grid.end == ROWS * COLS:
         WIN.fill("black", rect=((605, 150), (200, 50)))
+    else:
+        WIN.blit(bottom_right_button.image, bottom_right_button.rect)
 
     if grid.end == deepest:
         WIN.fill("black", rect=((605, 100), (200, 50)))
+    else:
+        WIN.blit(deepest_button.image, deepest_button.rect)
 
 
     if dfs_button.draw(WIN):
