@@ -1,4 +1,3 @@
-import heapq
 import random
 import time
 from collections import deque
@@ -418,7 +417,7 @@ class Grid:
         path.reverse()
         return path
 
-    def a_star(self, dijkstra=False, end_cell=None, sleep=0):
+    def a_star(self, dijkstra=False, end_cell=None, h_mult=1, sleep=0):
         """
         A* Search algorithm to find the shortest path.
         """
@@ -427,7 +426,7 @@ class Grid:
 
         self.visited = {self.current}  # Start with the first cell as visited
         operations = 0
-        count = 0
+        # count = 0
         came_from = {}
         open_heap = heapdict()
         # heapq.heappush(open_heap, (self.h(self.current, null=dijkstra), self.current))
@@ -480,7 +479,7 @@ class Grid:
                 if temp_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = temp_g_score
-                    f_score[neighbor] = temp_g_score + self.h(neighbor, null=dijkstra)
+                    f_score[neighbor] = temp_g_score + h_mult*self.h(neighbor, null=dijkstra)
                     
                     open_heap[neighbor] = f_score[neighbor]  # Efficient update
                     self.visited.add(neighbor)

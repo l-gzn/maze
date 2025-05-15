@@ -6,7 +6,8 @@ pygame.init()
 
 HEIGHT = 600
 WIDTH = HEIGHT + 200
-ROWS, COLS = 50, 50
+ROWS, COLS = 100,100
+H_MULT = 1
 
 CELL_SIZE = HEIGHT // COLS
 WIN = pygame.display.set_mode((WIDTH + 2, HEIGHT + 2))
@@ -18,6 +19,7 @@ Maze_done = False
 Solved = False
 deepest = None
 obs = False
+
 
 # Button images
 perfect_img = pygame.image.load("Buttons/Perfect.png").convert_alpha()
@@ -136,12 +138,14 @@ while running:
         if Maze_done:
             if not Solved:
                 path, ops = grid.dfs(end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
                 path, ops = grid.dfs(end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
 
@@ -151,12 +155,14 @@ while running:
         if Maze_done:
             if not Solved:
                 path, ops = grid.bfs(end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
                 path, ops = grid.bfs(end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
@@ -165,13 +171,15 @@ while running:
     if astar_button.draw(WIN):
         if Maze_done:
             if not Solved:
-                path, ops = grid.a_star(end_cell=grid.end, sleep=0)
+                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
-                path, ops = grid.a_star(end_cell=grid.end, sleep=0)
+                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
@@ -180,12 +188,14 @@ while running:
         if Maze_done:
             if not Solved:
                 path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
                 path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=0)
+                print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
