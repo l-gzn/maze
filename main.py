@@ -2,6 +2,11 @@ import random
 import pygame
 from classes import Grid, Button
 from utils import handle_quit
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BUTTONS_DIR = os.path.join(BASE_DIR, "Buttons")
+
 
 pygame.init()
 
@@ -24,16 +29,17 @@ obs = False
 
 
 # Button images
-perfect_img = pygame.image.load("Buttons/Perfect.png").convert_alpha()
-non_perfect_img = pygame.image.load("Buttons/Non_perfect.png").convert_alpha()
-deepest_img = pygame.image.load("Buttons/Deepest.png").convert_alpha()
-bottom_right_img = pygame.image.load("Buttons/Bottom_right.png").convert_alpha()
-obstacles_img = pygame.image.load("Buttons/Obstacles.png").convert_alpha()
-no_obstacles_img = pygame.image.load("Buttons/No_obstacles.png").convert_alpha()
-dfs_img = pygame.image.load("Buttons/DFS.png").convert_alpha()
-bfs_img = pygame.image.load("Buttons/BFS.png").convert_alpha()
-astar_img = pygame.image.load("Buttons/Astar.png").convert_alpha()
-dijkstra_img = pygame.image.load("Buttons/Dijkstra.png").convert_alpha()
+perfect_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Perfect.png")).convert_alpha()
+non_perfect_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Non_perfect.png")).convert_alpha()
+deepest_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Deepest.png")).convert_alpha()
+bottom_right_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Bottom_right.png")).convert_alpha()
+obstacles_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Obstacles.png")).convert_alpha()
+no_obstacles_img = pygame.image.load(os.path.join(BUTTONS_DIR,"No_obstacles.png")).convert_alpha()
+dfs_img = pygame.image.load(os.path.join(BUTTONS_DIR,"DFS.png")).convert_alpha()
+bfs_img = pygame.image.load(os.path.join(BUTTONS_DIR,"BFS.png")).convert_alpha()
+astar_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Astar.png")).convert_alpha()
+dijkstra_img = pygame.image.load(os.path.join(BUTTONS_DIR,"Dijkstra.png")).convert_alpha()
+
 
 # Create button instances
 perfect_button = Button(605, 0, perfect_img, scale=0.95)
