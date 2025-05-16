@@ -1,13 +1,15 @@
 import random
 import pygame
 from classes import Grid, Button
+from utils import handle_quit
 
 pygame.init()
 
 HEIGHT = 600
 WIDTH = HEIGHT + 200
-ROWS, COLS = 100,100
+ROWS, COLS = 50, 50
 H_MULT = 1
+DELAY = 0
 
 CELL_SIZE = HEIGHT // COLS
 WIN = pygame.display.set_mode((WIDTH + 2, HEIGHT + 2))
@@ -75,6 +77,7 @@ while running:
 
         # Maze Generation
         while grid.current_cell:
+            handle_quit()
             grid.maze_gen(loops=False,skip=False, obstacles=obs)
             # pygame.time.delay(90)
 
@@ -101,6 +104,7 @@ while running:
 
         # Maze Generation
         while grid.current_cell:
+            handle_quit()
             grid.maze_gen(loops=True,skip=False, obstacles=obs)
             # pygame.time.delay(90)
 
@@ -128,7 +132,7 @@ while running:
     else:
         WIN.blit(bottom_right_button.image, bottom_right_button.rect)
 
-    if grid.end == deepest:
+    if grid.end == deepest and grid.end != ROWS*COLS:
         WIN.fill("black", rect=((605, 100), (200, 50)))
     else:
         WIN.blit(deepest_button.image, deepest_button.rect)
@@ -137,14 +141,14 @@ while running:
     if dfs_button.draw(WIN):
         if Maze_done:
             if not Solved:
-                path, ops = grid.dfs(end_cell=grid.end, sleep=0)
+                path, ops = grid.dfs(end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
-                path, ops = grid.dfs(end_cell=grid.end, sleep=0)
+                path, ops = grid.dfs(end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
@@ -154,14 +158,14 @@ while running:
     if bfs_button.draw(WIN):
         if Maze_done:
             if not Solved:
-                path, ops = grid.bfs(end_cell=grid.end, sleep=0)
+                path, ops = grid.bfs(end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
-                path, ops = grid.bfs(end_cell=grid.end, sleep=0)
+                path, ops = grid.bfs(end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
@@ -171,14 +175,14 @@ while running:
     if astar_button.draw(WIN):
         if Maze_done:
             if not Solved:
-                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=0)
+                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
-                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=0)
+                path, ops = grid.a_star(end_cell=grid.end, h_mult=H_MULT, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
@@ -187,14 +191,14 @@ while running:
     if dijkstra_button.draw(WIN):
         if Maze_done:
             if not Solved:
-                path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=0)
+                path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)
                 Solved = True
             else:
                 grid.new_solve(deepest, obs)
-                path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=0)
+                path, ops = grid.a_star(dijkstra=True, end_cell=grid.end, sleep=DELAY)
                 print(f"Length: {len(path)}")
                 if obs:
                     grid.redraw_obstacles(path)

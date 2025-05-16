@@ -3,6 +3,7 @@ import time
 from collections import deque
 from heapdict import heapdict
 import pygame
+from utils import handle_quit
 
 
 class Cell:
@@ -82,10 +83,9 @@ class Grid:
     forme une liste 2D d'objets cell
     """
 
-    def __init__(self, rows, cols, cell_size, win, seed=42):
-        import random
-
-        random.seed(seed)  # Fixed seed for reproducibility
+    def __init__(self, rows, cols, cell_size, win, seed=None):
+        if seed is not None:
+            random.seed(seed)  # Fixed seed for reproducibility
 
         self.rows = rows
         self.cols = cols
@@ -182,7 +182,7 @@ class Grid:
                 self.draw_square(
                     self.current_cell.row,
                     self.current_cell.col,
-                    background_col="deeppink",
+                    background_col="lightgray",
                 )
 
         if self.stack:
@@ -362,6 +362,7 @@ class Grid:
         stack.append(self.current)
 
         while end_cell not in self.visited:
+            handle_quit()
             row, col = self.num_to_ij(self.current)
             self.draw_square(row, col, background_col="orange")
             operations += 1
@@ -450,6 +451,7 @@ class Grid:
         last_current = self.current  # Starting cell
 
         while open_heap:
+            handle_quit()
             current, _ = open_heap.popitem() # Get the current cell
 
             # Mark the previous cell as visited (orange)
@@ -516,6 +518,7 @@ class Grid:
         solution = None
 
         while queue:
+            handle_quit()
             current, path = queue.pop(0)
 
             if not find_deepest and current == end_cell:
@@ -595,7 +598,7 @@ class Grid:
             for cell in row:
                 if cell.obstacle:
                     self.draw_square(
-                        cell.row, cell.col, background_col="deeppink", wall_col="white"
+                        cell.row, cell.col, background_col="lightgray", wall_col="white"
                     )
         if path:
             for cell in path:
@@ -603,7 +606,7 @@ class Grid:
                 cell = self.get_cell(row, col)
                 if cell.obstacle:
                     self.draw_square(
-                        cell.row, cell.col, background_col="cyan", wall_col="white"
+                        cell.row, cell.col, background_col="green", wall_col="white"
                     )
 
     def new_solve(self, deepest=None, obs=False):
@@ -621,7 +624,7 @@ class Grid:
         # Recolors the deepest cell
         if deepest:
             deep_row, deep_col = self.num_to_ij(deepest)
-            self.draw_square(deep_row, deep_col, background_col="cyan" )
+            self.draw_square(deep_row, deep_col, background_col="green")
 
         self.current = self.ij_to_num(0,0)
         self.visited = {self.current}
