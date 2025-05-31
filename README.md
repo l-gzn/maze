@@ -1,6 +1,3 @@
-from pathlib import Path
-
-readme_content = """\
 # 🧩 Maze Visualizer & Solver
 
 A Pygame-based application for **generating, visualizing, and solving mazes** using various classical pathfinding algorithms, with optional obstacles and dynamic resizing support.
