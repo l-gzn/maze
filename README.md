@@ -46,6 +46,7 @@ A Pygame-based application for **generating, visualizing, and solving mazes** us
 ├── utils.py       # Utility functions (quit handling, layout updates)
 ├── Buttons/       # Folder with button images
 ├── README.md      # You're reading it!
+```
 
 ---
 
