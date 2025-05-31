@@ -39,12 +39,13 @@ A Pygame-based application for **generating, visualizing, and solving mazes** us
 ---
 
 ## 📦 Project Structure
-├── main.py # Entry point with Pygame loop and UI logic
-├── classes.py # Grid, Cell, and Button classes with core logic
-├── utils.py # Utility functions (quit handling, layout updates)
-├── Buttons/ # Folder with button images
-├── README.md # You're reading it!
 
+```text
+├── main.py        # Entry point with Pygame loop and UI logic
+├── classes.py     # Grid, Cell, and Button classes with core logic
+├── utils.py       # Utility functions (quit handling, layout updates)
+├── Buttons/       # Folder with button images
+├── README.md      # You're reading it!
 
 ---
 
